@@ -115,7 +115,18 @@ cloudflared tunnel --url http://localhost:8080     # 免费、无需账号，得
 ngrok http 8080                                    # 需要注册一个免费 authtoken
 ```
 
-### 方式 B：免费云平台长期部署（推荐 Render）
+### 方式 B：免费云平台长期部署（国内访问推荐 Zeabur，免绑卡）
+
+> Render 新账号需绑定信用卡验证，没有外币卡时可改用 **Zeabur**（免费方案无需绑卡、有中文界面、国内访问 *.zeabur.app 较稳）。仓库根目录已放 `package.json`，任意平台直接以仓库根目录部署即可，无需设置子目录。
+
+**Zeabur 部署步骤：**
+1. 打开 zeabur.com 注册（可用 GitHub 账号一键登录），默认 Free 方案，无需绑卡；
+2. 新建项目 → 添加服务 → 选择「部署来自 Git 仓库」→ 连接并选择 `ai-math-tutor-demo` 仓库；
+3. 服务类型选 Node.js（自动识别根目录 package.json）；
+4. 在服务「变量」里添加 3 个环境变量：`LLM_API_KEY`、`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-chat`；
+5. 部署完成后得到 `https://xxxx.zeabur.app` 公网链接。
+
+（如仍想用 Render，需准备一张外币信用卡/虚拟卡完成身份验证。）
 1. 把项目推到 GitHub（注意 `.env` 已在 `.gitignore`，不会上传）；
 2. 在 [render.com](https://render.com) 新建 **Web Service**，连接仓库，目录选 `prototype`；
 3. Build Command 留空，Start Command 填 `npm start`，Node 版本选 18+；

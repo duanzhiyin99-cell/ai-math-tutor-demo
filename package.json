@@ -1,0 +1,14 @@
+{
+  "name": "ai-math-tutor-demo",
+  "version": "1.0.0",
+  "description": "AI 数学学习助手 · MVP Demo（产品设计与 0→1 搭建）",
+  "main": "prototype/server.js",
+  "scripts": {
+    "start": "node prototype/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "private": true
+}
