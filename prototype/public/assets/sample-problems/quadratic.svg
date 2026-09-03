@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="200" viewBox="0 0 560 200">
+  <rect width="560" height="200" fill="#ffffff" rx="12"/>
+  <text x="40" y="70" font-family="Georgia, serif" font-size="40" fill="#111827">解方程：</text>
+  <text x="40" y="140" font-family="Georgia, serif" font-size="44" fill="#111827" font-style="italic">x</text>
+  <text x="92" y="102" font-family="Georgia, serif" font-size="28" fill="#111827">2</text>
+  <text x="125" y="140" font-family="Georgia, serif" font-size="44" fill="#111827">− 5</text>
+  <text x="205" y="140" font-family="Georgia, serif" font-size="44" fill="#111827" font-style="italic">x</text>
+  <text x="258" y="140" font-family="Georgia, serif" font-size="44" fill="#111827">+ 6 = 0</text>
+</svg>

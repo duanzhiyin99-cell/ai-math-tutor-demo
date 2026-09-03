@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="260" viewBox="0 0 520 260">
+  <rect width="520" height="260" fill="#ffffff" rx="12"/>
+  <polygon points="80,200 400,200 400,72" fill="#DBEAFE" stroke="#2563EB" stroke-width="3"/>
+  <line x1="400" y1="200" x2="400" y2="72" stroke="#DC2626" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="408" y="140" font-family="Georgia, serif" font-size="26" fill="#DC2626">高=5</text>
+  <text x="220" y="232" font-family="Georgia, serif" font-size="26" fill="#2563EB">底=8</text>
+  <text x="70" y="40" font-family="Georgia, serif" font-size="30" fill="#111827">求三角形面积</text>
+</svg>

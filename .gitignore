@@ -1,0 +1,12 @@
+# 本地配置与密钥（勿提交）
+.env
+prototype/.env
+
+# 系统文件
+.DS_Store
+
+# 依赖
+node_modules/
+
+# 个人复现练习工作区（不推送到公开仓库）
+reproduction/

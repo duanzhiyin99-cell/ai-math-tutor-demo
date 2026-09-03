@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="200" viewBox="0 0 520 200">
+  <rect width="520" height="200" fill="#ffffff" rx="12"/>
+  <text x="40" y="70" font-family="Georgia, serif" font-size="40" fill="#111827">解方程：</text>
+  <text x="40" y="140" font-family="Georgia, serif" font-size="48" fill="#111827" font-style="italic">2x</text>
+  <text x="130" y="140" font-family="Georgia, serif" font-size="48" fill="#111827">+ 3 = 7</text>
+</svg>

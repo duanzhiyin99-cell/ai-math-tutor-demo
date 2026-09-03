@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="240" viewBox="0 0 520 240">
+  <rect width="520" height="240" fill="#ffffff" rx="12"/>
+  <text x="40" y="60" font-family="Georgia, serif" font-size="38" fill="#111827">解方程组：</text>
+  <line x1="40" y1="95" x2="280" y2="95" stroke="#111827" stroke-width="2.5"/>
+  <line x1="40" y1="185" x2="280" y2="185" stroke="#111827" stroke-width="2.5"/>
+  <text x="55" y="120" font-family="Georgia, serif" font-size="40" fill="#111827" font-style="italic">x</text>
+  <text x="95" y="120" font-family="Georgia, serif" font-size="40" fill="#111827">+</text>
+  <text x="125" y="120" font-family="Georgia, serif" font-size="40" fill="#111827" font-style="italic">y</text>
+  <text x="165" y="120" font-family="Georgia, serif" font-size="40" fill="#111827">= 5</text>
+  <text x="55" y="170" font-family="Georgia, serif" font-size="40" fill="#111827" font-style="italic">x</text>
+  <text x="95" y="170" font-family="Georgia, serif" font-size="40" fill="#111827">−</text>
+  <text x="125" y="170" font-family="Georgia, serif" font-size="40" fill="#111827" font-style="italic">y</text>
+  <text x="165" y="170" font-family="Georgia, serif" font-size="40" fill="#111827">= 1</text>
+</svg>

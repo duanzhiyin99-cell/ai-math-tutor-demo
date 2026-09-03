@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AI 数学学习助手 · MVP Demo</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-logo">∑</span>
+        <div>
+          <div class="brand-name">AI 数学学习助手</div>
+          <div class="brand-sub">不跳步地讲懂 · 顺着你的思路纠错</div>
+        </div>
+      </div>
+      <span id="modeBadge" class="mode-badge">…</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 输入区 -->
+    <section class="card" id="inputCard">
+      <h2 class="section-title">📷 拍照识题</h2>
+      <p class="section-desc">上传题目照片，或直接选择示例题体验完整流程。</p>
+
+      <div id="dropZone" class="dropzone">
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        <div id="dropInner" class="drop-inner">
+          <div class="dz-icon">📷</div>
+          <div class="dz-text">点击上传 / 拖拽题目图片到此处</div>
+          <div class="dz-sub">支持 jpg / png / webp，≤ 10MB</div>
+        </div>
+        <div id="imgPreviewWrap" class="img-preview hidden">
+          <img id="imgPreview" alt="题目预览" />
+          <button id="removeImg" class="remove-img" title="移除图片">✕</button>
+        </div>
+      </div>
+
+      <div class="or-divider"><span>或选择示例题</span></div>
+      <div id="sampleChips" class="chips"></div>
+
+      <label class="field-label" for="problemInput">题目文本（识别后可编辑）</label>
+      <textarea id="problemInput" rows="3" placeholder="例如：2x + 3 = 7，求 x"></textarea>
+
+      <div class="level-row">
+        <span class="field-label">讲解深度</span>
+        <div class="seg" id="levelSeg">
+          <button data-level="基础" class="seg-btn">基础</button>
+          <button data-level="标准" class="seg-btn active">标准</button>
+          <button data-level="进阶" class="seg-btn">进阶</button>
+        </div>
+      </div>
+
+      <button id="solveBtn" class="btn-primary">🚀 开始讲解</button>
+      <div id="inputHint" class="hint"></div>
+      <div class="support-hint">⚙️ 离线模式支持：一元一次/二次方程、简单三次方程、分式运算、多项式求导、二元一次方程组、三角形/圆面积、简单对数。其他题型请配置 LLM_API_KEY 后由真实大模型解答。</div>
+    </section>
+
+    <!-- 结果区 -->
+    <section id="resultCard" class="card hidden">
+      <div class="result-head">
+        <h2 class="section-title">📖 分步讲解</h2>
+        <span id="typeBadge" class="type-badge"></span>
+      </div>
+
+      <div class="problem-box" id="problemBox"></div>
+
+      <div id="stepsWrap" class="steps"></div>
+
+      <!-- 答案折叠 -->
+      <div class="answer-fold">
+        <button id="answerToggle" class="btn-ghost">💡 展开答案（先自己想一想，再对答案）</button>
+        <div id="answerBox" class="answer-box hidden"></div>
+      </div>
+
+      <!-- 错因分析入口 -->
+      <div class="err-section">
+        <h3 class="err-title">❌ 我的过程有错，帮我分析</h3>
+        <p class="section-desc">把你自己写的答案或过程粘贴到这里，AI 会定位错因并给出纠正。</p>
+        <textarea id="myWorkInput" rows="3" placeholder="例如：2x = 7 + 3&#10;x = 5"></textarea>
+        <button id="analyzeBtn" class="btn-secondary">🔍 分析错因</button>
+        <div id="analyzeResult" class="analyze-result"></div>
+      </div>
+
+      <!-- 同类题推荐 -->
+      <div id="similarWrap" class="similar hidden">
+        <h3 class="err-title">📚 同类题推荐（错一练三）</h3>
+        <div id="similarList" class="similar-list"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      AI 数学学习助手 · MVP Demo（个人项目 2025.09–2025.11）
+      <br />演示环境内置规则引擎离线可跑；配置 LLM_API_KEY 后切换真实大模型。
+    </footer>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/mockEngine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Render Blueprint：在 render.com 用 "New + → Blueprint" 导入本文件即可一键部署
+services:
+  - type: web
+    name: ai-math-tutor-demo
+    runtime: node
+    rootDir: prototype
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /api/mode
+    envVars:
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com
+      - key: LLM_MODEL
+        value: deepseek-chat
+      # LLM_API_KEY 为敏感变量：部署时在 Render 后台手动填写（sync: false）
+      - key: LLM_API_KEY
+        sync: false
