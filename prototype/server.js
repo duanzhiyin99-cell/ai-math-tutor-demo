@@ -40,7 +40,7 @@ const PORT = process.env.PORT || 8080;
 const LLM_API_KEY = process.env.LLM_API_KEY || '';
 const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
 const LLM_MODEL = process.env.LLM_MODEL || 'gpt-4o-mini';
-const USE_LLM = !!LLM_API_KEY;
+const USE_LLM = process.env.LLM_ENABLED === 'true' || !!LLM_API_KEY;
 
 /* 视觉模型配置（用于「拍照识题」）：未单独配置时回退到上面的 LLM_* */
 const VISION_API_KEY = process.env.VISION_API_KEY || LLM_API_KEY;
@@ -93,26 +93,38 @@ function serveStatic(res, urlPath) {
 /* ---------------- 大模型调用（OpenAI 兼容） ---------------- */
 async function llmChat(messages, { maxTokens = 1600, json = false, creds = null } = {}) {
   const c = creds || { apiKey: LLM_API_KEY, baseUrl: LLM_BASE_URL, model: LLM_MODEL };
-  const payload = {
-    model: c.model,
-    messages,
-    max_tokens: maxTokens
-  };
-  if (json) payload.response_format = { type: 'json_object' };
-  const resp = await fetch(`${c.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${c.apiKey}`
-    },
-    body: JSON.stringify(payload)
-  });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    throw new Error(`LLM API ${resp.status}: ${text.slice(0, 200)}`);
+
+  async function request(useJsonMode) {
+    const payload = { model: c.model, messages, max_tokens: maxTokens };
+    if (useJsonMode) payload.response_format = { type: 'json_object' };
+    const resp = await fetch(`${c.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${c.apiKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      const err = new Error(`LLM API ${resp.status}: ${text.slice(0, 200)}`);
+      err.status = resp.status;
+      throw err;
+    }
+    const data = await resp.json();
+    return data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
   }
-  const data = await resp.json();
-  return data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+
+  // 若目标模型不支持 JSON 模式（部分厂商会返回 400/422），自动去掉该参数重试一次
+  if (json) {
+    try {
+      return await request(true);
+    } catch (e) {
+      if (e.status === 400 || e.status === 422) return await request(false);
+      throw e;
+    }
+  }
+  return await request(false);
 }
 
 function parseJSONFromLLM(text) {
@@ -126,8 +138,9 @@ function parseJSONFromLLM(text) {
 const LLM_SYSTEM = `你是一位专业的中国数学老师，面向中学生/大学生讲题。
 要求：
 1. 分步讲解必须完整，禁止跳步；每一步包含 title（步骤名）、body（这一步的数学表达式或操作）、why（这一步的依据/为什么）。
-2. 输出 JSON 对象：{ "typeName": "题型名", "steps": [{ "title","body","why" }], "answer": "最终答案" }。
-3. 答案与讲解用中文，公式用 LaTeX/文本形式（如 x^2、1/2、√3）。`;
+2. 输出 JSON 对象：{ "typeName": "题型名", "steps": [{ "title","body","why" }], "answer": "最终答案", "similar": [{ "problem": "同类题", "answer": "答案" }] }。
+3. 答案与讲解用中文；公式一律用纯文本表示：幂用 ^（如 x^2）、分数用 /（如 1/2）、根号用 sqrt(3)、圆周率用 π、判别式用 Δ。禁止使用 LaTeX 的 \[ \] \( \) 或 $ 包裹公式，也禁止使用 ** 等 Markdown 强调符号，禁止用 ### 标题。
+4. similar 给 2-3 道与本题同类型、难度相近的练习题。`;
 
 async function solveViaLLM(problem, level) {
   const content = await llmChat([
@@ -140,12 +153,17 @@ async function solveViaLLM(problem, level) {
     body: s.body || '',
     why: s.why || ''
   }));
+  const similar = (data.similar || []).map((x) => ({
+    problem: x.problem || '',
+    answer: x.answer || '',
+    typeName: data.typeName || '同类题'
+  })).filter((x) => x.problem);
   return {
     type: 'llm',
     typeName: data.typeName || '数学题',
     answer: data.answer || '',
     steps,
-    similar: [],
+    similar,
     problem,
     mode: 'llm'
   };
@@ -164,7 +182,11 @@ async function analyzeViaLLM(problem, myWork, level) {
     detail: data.detail || '',
     suggestion: data.suggestion || '',
     correctAnswer: data.correctAnswer || '',
-    similar: [],
+    similar: (data.similar || []).map((x) => ({
+      problem: x.problem || '',
+      answer: x.answer || '',
+      typeName: '同类题'
+    })).filter((x) => x.problem),
     mode: 'llm'
   };
 }
@@ -285,8 +307,8 @@ server.listen(PORT, () => {
   console.log('==============================================');
   console.log('  AI 数学学习助手 · MVP Demo');
   console.log(`  地址: http://localhost:${PORT}`);
-  console.log(`  模式: ${USE_LLM ? 'LLM (' + LLM_MODEL + ')' : '内置规则引擎（mock）'}`);
-  console.log(`  拍照识题: ${VISION_CONFIGURED ? '视觉模型 ' + VISION_MODEL : '未配置视觉模型（上传图片将提示手动输入）'}`);
+  console.log(`  模式: ${USE_LLM ? 'LLM (' + LLM_MODEL + ' @ ' + LLM_BASE_URL + ')' : '内置规则引擎（mock）'}`);
+  console.log(`  拍照识题: ${VISION_CONFIGURED ? '专用视觉模型 ' + VISION_MODEL : '使用主模型 ' + LLM_MODEL + ' 识别（如需更准可另配 VISION_MODEL）'}`);
   if (!USE_LLM) console.log('  提示: 配置 LLM_API_KEY 可切换为真实大模型讲解');
   console.log('==============================================');
 });

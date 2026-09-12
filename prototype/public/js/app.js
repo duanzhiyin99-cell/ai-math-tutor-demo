@@ -58,6 +58,22 @@
     els.inputHint.textContent = msg || '';
     els.inputHint.className = 'hint' + (type ? ' ' + type : '');
   }
+  // 把大模型常见的 LaTeX / Markdown 写法转成干净的纯文本（仅用于展示）
+  function formatMath(text) {
+    let t = String(text == null ? '' : text);
+    t = t.replace(/\\\[|\\\]|\\\(|\\\)|\$\$?/g, '');                       // 去掉 \[ \] \( \) $
+    t = t.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)'); // \frac{a}{b} -> (a)/(b)
+    t = t.replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)');                    // \sqrt{x} -> √(x)
+    t = t.replace(/\\times/g, '×').replace(/\\cdot/g, '·')
+         .replace(/\\div/g, '÷').replace(/\\pm/g, '±')
+         .replace(/\\le/g, '≤').replace(/\\ge/g, '≥')
+         .replace(/\\neq/g, '≠').replace(/\\Delta/g, 'Δ')
+         .replace(/\\pi/g, 'π').replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β');
+    t = t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1');    // 去掉 **粗体**
+    t = t.replace(/^\s*#{1,6}\s*/gm, '');                                // 去掉 ### 标题
+    return t.trim();
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -231,19 +247,19 @@
 
     const steps = r.steps || [];
     els.stepsWrap.innerHTML = steps.map((s, i) => {
-      const bodyHtml = s.body ? '<div class="step-expr">' + escapeHtml(s.body) + '</div>' : '';
-      const whyHtml = s.why ? '<div class="step-why" data-why="' + i + '"><span class="why-label">为什么：</span>' + escapeHtml(s.why) + '</div>' : '';
+      const bodyHtml = s.body ? '<div class="step-expr">' + escapeHtml(formatMath(s.body)) + '</div>' : '';
+      const whyHtml = s.why ? '<div class="step-why" data-why="' + i + '"><span class="why-label">为什么：</span>' + escapeHtml(formatMath(s.why)) + '</div>' : '';
       const btnHtml = s.why ? '<button class="step-why-btn" data-toggle="' + i + '">为什么 ▾</button>' : '';
       return '<div class="step">' +
         '<div class="step-head">' +
           '<div class="step-num">' + (i + 1) + '</div>' +
-          '<div class="step-body"><div class="step-title">' + escapeHtml(s.title) + '</div>' + bodyHtml + btnHtml + '</div>' +
+          '<div class="step-body"><div class="step-title">' + escapeHtml(formatMath(s.title)) + '</div>' + bodyHtml + btnHtml + '</div>' +
         '</div>' + whyHtml + '</div>';
     }).join('');
 
     // 答案折叠
     if (r.answer) {
-      els.answerBox.innerHTML = escapeHtml(r.answer);
+      els.answerBox.innerHTML = escapeHtml(formatMath(r.answer));
       els.answerBox.classList.add('hidden');
       els.answerToggle.classList.remove('hidden');
     } else {
@@ -255,8 +271,8 @@
     if (r.similar && r.similar.length) {
       els.similarList.innerHTML = r.similar.map((s, i) =>
         '<div class="similar-item" data-i="' + i + '">' +
-          '<div class="si-problem">' + escapeHtml(s.problem) + '</div>' +
-          '<div class="si-answer">' + escapeHtml(s.answer || '') + '</div>' +
+          '<div class="si-problem">' + escapeHtml(formatMath(s.problem)) + '</div>' +
+          '<div class="si-answer">' + escapeHtml(formatMath(s.answer || '')) + '</div>' +
           '<span class="si-go">讲解 ›</span>' +
         '</div>'
       ).join('');
@@ -314,9 +330,9 @@
     const title = r.title || '错因分析';
     let html = '<div class="err-card ' + cls + '">';
     html += '<span class="err-type">' + escapeHtml(title) + '</span>';
-    html += '<div class="err-detail">' + escapeHtml(r.detail || '') + '</div>';
-    if (r.correctAnswer) html += '<div class="err-answer">✅ 正确答案：' + escapeHtml(r.correctAnswer) + '</div>';
-    if (r.suggestion) html += '<div class="err-suggest">💡 建议：' + escapeHtml(r.suggestion) + '</div>';
+    html += '<div class="err-detail">' + escapeHtml(formatMath(r.detail || '')) + '</div>';
+    if (r.correctAnswer) html += '<div class="err-answer">✅ 正确答案：' + escapeHtml(formatMath(r.correctAnswer)) + '</div>';
+    if (r.suggestion) html += '<div class="err-suggest">💡 建议：' + escapeHtml(formatMath(r.suggestion)) + '</div>';
     html += '</div>';
     els.analyzeResult.innerHTML = html;
 
@@ -324,8 +340,8 @@
     if (r.similar && r.similar.length) {
       els.similarList.innerHTML = r.similar.map((s, i) =>
         '<div class="similar-item" data-i="' + i + '">' +
-          '<div class="si-problem">' + escapeHtml(s.problem) + '</div>' +
-          '<div class="si-answer">' + escapeHtml(s.answer || '') + '</div>' +
+          '<div class="si-problem">' + escapeHtml(formatMath(s.problem)) + '</div>' +
+          '<div class="si-answer">' + escapeHtml(formatMath(s.answer || '')) + '</div>' +
           '<span class="si-go">讲解 ›</span>' +
         '</div>'
       ).join('');
