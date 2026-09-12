@@ -73,6 +73,18 @@
     els.modeBadge.textContent = badgeText;
     els.modeBadge.title = mode.message || '';
 
+    // 拍照识题可用性提示
+    const dzSub = els.dropZone.querySelector('.dz-sub');
+    if (dzSub) {
+      if (mode.visionConfigured) {
+        dzSub.textContent = '已启用视觉模型：' + mode.visionModel + '（上传图片自动识别题目）';
+      } else if (mode.llmConfigured) {
+        dzSub.textContent = '上传后用「' + mode.llmModel + '」识别题目，识别结果可手动校对';
+      } else {
+        dzSub.textContent = '支持 jpg / png / webp ≤ 10MB；离线模式请手动输入题目或选择示例题';
+      }
+    }
+
     const data = await api('/api/samples').catch(() => ({ samples: [] }));
     const samples = data.samples || [];
     els.sampleChips.innerHTML = samples.map((s) =>

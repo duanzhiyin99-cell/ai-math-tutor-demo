@@ -42,6 +42,13 @@ const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://api.openai.com/v1').r
 const LLM_MODEL = process.env.LLM_MODEL || 'gpt-4o-mini';
 const USE_LLM = !!LLM_API_KEY;
 
+/* 视觉模型配置（用于「拍照识题」）：未单独配置时回退到上面的 LLM_* */
+const VISION_API_KEY = process.env.VISION_API_KEY || LLM_API_KEY;
+const VISION_BASE_URL = (process.env.VISION_BASE_URL || LLM_BASE_URL).replace(/\/+$/, '');
+const VISION_MODEL = process.env.VISION_MODEL || LLM_MODEL;
+// 是否已显式配置视觉模型（未配置时仍会尝试，失败则提示手动输入）
+const VISION_CONFIGURED = !!(process.env.VISION_MODEL || process.env.VISION_API_KEY || process.env.VISION_BASE_URL);
+
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 const MIME = {
@@ -84,18 +91,19 @@ function serveStatic(res, urlPath) {
 }
 
 /* ---------------- 大模型调用（OpenAI 兼容） ---------------- */
-async function llmChat(messages, { maxTokens = 1600, json = false } = {}) {
+async function llmChat(messages, { maxTokens = 1600, json = false, creds = null } = {}) {
+  const c = creds || { apiKey: LLM_API_KEY, baseUrl: LLM_BASE_URL, model: LLM_MODEL };
   const payload = {
-    model: LLM_MODEL,
+    model: c.model,
     messages,
     max_tokens: maxTokens
   };
   if (json) payload.response_format = { type: 'json_object' };
-  const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+  const resp = await fetch(`${c.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LLM_API_KEY}`
+      'Authorization': `Bearer ${c.apiKey}`
     },
     body: JSON.stringify(payload)
   });
@@ -174,26 +182,45 @@ async function recognize({ image, sampleId, samplePath }) {
   if (samplePath && SAMPLE_IMAGES[samplePath]) {
     return { ok: true, text: SAMPLE_IMAGES[samplePath], mode: 'sample', source: '示例题' };
   }
-  // 2) 真实上传 + 已配置 LLM（vision）
-  if (image && USE_LLM) {
+  // 2) 真实上传 + 已配置视觉模型
+  if (image && VISION_API_KEY) {
     try {
       const content = await llmChat([
-        { role: 'system', content: '你是一个数学 OCR 引擎。请把图片中的数学题完整、准确地转成纯文本（用 ^ 表示幂，/ 表示分数，保留等号）。只输出题目文本，不要解释。' },
-        { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } }, { type: 'text', text: '请识别题目。' }] }
-      ], { maxTokens: 800 });
-      return { ok: true, text: content.trim(), mode: 'llm', source: '大模型视觉识别' };
+        {
+          role: 'system',
+          content: '你是一个数学 OCR 引擎。请把图片中的数学题完整、准确地转成纯文本：幂用 ^（如 x^2），分数用 /（如 1/2），根号用 sqrt()，乘号用 *，保留等号与括号。只输出题目文本，不要任何解释。'
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
+            { type: 'text', text: '请识别图片中的数学题目，只输出题目文本。' }
+          ]
+        }
+      ], { maxTokens: 800, creds: { apiKey: VISION_API_KEY, baseUrl: VISION_BASE_URL, model: VISION_MODEL } });
+      return { ok: true, text: String(content).trim(), mode: 'llm', source: '视觉模型识别（' + VISION_MODEL + '）' };
     } catch (e) {
-      return { ok: false, text: '', mode: 'error', message: '识别失败：' + e.message };
+      const hint = VISION_CONFIGURED
+        ? '识别失败：' + e.message
+        : '当前模型（' + VISION_MODEL + '）不支持图片输入。请在 .env 中配置支持视觉的模型，例如：VISION_MODEL=glm-4v-flash、VISION_BASE_URL=https://open.bigmodel.cn/api/paas/v4、VISION_API_KEY=你的Key；也可直接手动输入题目。';
+      return { ok: false, text: '', mode: 'error', message: hint };
     }
   }
-  // 3) 未配置 LLM：让用户手动输入（识别入口保留）
-  return { ok: false, text: '', mode: 'manual', message: '未配置大模型 API（LLM_API_KEY），无法识别真实图片。可直接输入题目，或选择右侧示例题体验完整流程。' };
+  // 3) 未配置任何 Key：手动输入
+  return { ok: false, text: '', mode: 'manual', message: '未配置大模型 API（LLM_API_KEY），无法识别真实图片。可直接输入题目，或选择示例题体验完整流程。' };
 }
 
 /* ---------------- 路由 ---------------- */
 async function handleAPI(req, res, url) {
   if (url.pathname === '/api/mode') {
-    return sendJSON(res, 200, { mode: USE_LLM ? 'llm' : 'mock', llmModel: LLM_MODEL, llmConfigured: USE_LLM, message: USE_LLM ? `已接入大模型：${LLM_MODEL}` : '当前为内置规则引擎模式（离线可跑）；配置 LLM_API_KEY 可切换真实大模型' });
+    return sendJSON(res, 200, {
+      mode: USE_LLM ? 'llm' : 'mock',
+      llmModel: LLM_MODEL,
+      llmConfigured: USE_LLM,
+      visionModel: VISION_CONFIGURED ? VISION_MODEL : '',
+      visionConfigured: VISION_CONFIGURED,
+      message: USE_LLM ? `已接入大模型：${LLM_MODEL}${VISION_CONFIGURED ? '；拍照识题模型：' + VISION_MODEL : ''}` : '当前为内置规则引擎模式（离线可跑）；配置 LLM_API_KEY 可切换真实大模型'
+    });
   }
   if (url.pathname === '/api/samples') {
     return sendJSON(res, 200, { samples: MockEngine.SAMPLES });
@@ -259,6 +286,7 @@ server.listen(PORT, () => {
   console.log('  AI 数学学习助手 · MVP Demo');
   console.log(`  地址: http://localhost:${PORT}`);
   console.log(`  模式: ${USE_LLM ? 'LLM (' + LLM_MODEL + ')' : '内置规则引擎（mock）'}`);
+  console.log(`  拍照识题: ${VISION_CONFIGURED ? '视觉模型 ' + VISION_MODEL : '未配置视觉模型（上传图片将提示手动输入）'}`);
   if (!USE_LLM) console.log('  提示: 配置 LLM_API_KEY 可切换为真实大模型讲解');
   console.log('==============================================');
 });

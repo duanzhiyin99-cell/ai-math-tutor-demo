@@ -42,8 +42,13 @@ LLM_API_KEY=sk-xxxx node server.js
 | --- | --- | --- |
 | `LLM_API_KEY` | 大模型 API Key；配置后自动启用 LLM 模式 | 空（mock） |
 | `LLM_BASE_URL` | OpenAI 兼容接口地址 | `https://api.openai.com/v1` |
-| `LLM_MODEL` | 模型名 | `gpt-4o-mini` |
+| `LLM_MODEL` | 模型名（解题 / 错因分析） | `gpt-4o-mini` |
+| `VISION_API_KEY` | 视觉模型 Key（拍照识题用，缺省回退 `LLM_API_KEY`） | 空 |
+| `VISION_BASE_URL` | 视觉模型接口地址（缺省回退 `LLM_BASE_URL`） | 空 |
+| `VISION_MODEL` | 视觉模型名，如 `glm-4v-flash`、`qwen-vl-plus` | 空 |
 | `PORT` | 服务端口 | `8080` |
+
+> **拍照识题**需要支持图片输入的模型。已实测：`deepseek-chat` 可直接识别题目图片，因此默认无需额外配置。若想改用更便宜或更准的专用视觉模型（如智谱 `glm-4v-flash`、通义 `qwen-vl-plus`、OpenAI `gpt-4o-mini`），可单独配置 `VISION_*` 三项，与解题模型混用互不影响；识别失败时会提示手动输入，其他功能不受影响。
 
 ### 推荐：使用本地 `.env` 文件（密钥不入库）
 
