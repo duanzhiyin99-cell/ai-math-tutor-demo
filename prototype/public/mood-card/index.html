@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWM 情绪签到卡</title>
+  <style>
+    :root { --bg: #f6f2ff; --card: #fff; --text: #2e2440; --accent: #7764e8; --muted: #756d89; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; background: radial-gradient(circle at top, #eee8ff, var(--bg)); color: var(--text); padding: 24px; }
+    main { width: min(680px, 100%); background: var(--card); border-radius: 28px; padding: 36px 28px; box-shadow: 0 20px 60px rgba(76, 57, 140, .14); text-align: center; }
+    h1 { font-size: clamp(24px, 5vw, 38px); margin: 0 0 8px; }
+    .sub { color: var(--muted); margin-bottom: 30px; }
+    .moods { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    button { border: 0; border-radius: 18px; padding: 18px 8px; background: #f2efff; cursor: pointer; font-size: 28px; transition: transform .18s, background .18s, box-shadow .18s; }
+    button span { display: block; font-size: 13px; color: var(--muted); margin-top: 8px; }
+    button:hover, button.selected { transform: translateY(-4px); background: #ded7ff; box-shadow: 0 10px 20px rgba(119, 100, 232, .18); }
+    .message { min-height: 76px; margin-top: 26px; border-radius: 20px; padding: 20px; background: #faf9ff; color: var(--accent); font-size: 18px; line-height: 1.6; display: grid; place-items: center; }
+    @media (max-width: 520px) { .moods { grid-template-columns: repeat(3, 1fr); } main { padding: 28px 18px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>今天 AWM 更懂我了吗？</h1>
+    <p class="sub">选一个最接近你现在心情的选项吧</p>
+    <div class="moods" id="moods">
+      <button data-message="太好了，把这份能量也分享给 AWM 吧！">😄<span>超开心</span></button>
+      <button data-message="平静也是一种很棒的成长状态。">🙂<span>还不错</span></button>
+      <button data-message="没关系，可以先让 AWM 陪你慢一点。">😐<span>一般般</span></button>
+      <button data-message="你的感受很重要，可以试着告诉 AWM 发生了什么。">😔<span>有点难过</span></button>
+      <button data-message="先停一停也没关系，我们一起完成一个小步骤。">😣<span>有点烦躁</span></button>
+    </div>
+    <div class="message" id="message">你的选择会成为 AWM 更懂你的线索</div>
+  </main>
+  <script>
+    const message = document.getElementById('message');
+    document.querySelectorAll('#moods button').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('#moods button').forEach((item) => item.classList.remove('selected'));
+        button.classList.add('selected');
+        message.textContent = button.dataset.message;
+      });
+    });
+  </script>
+</body>
+</html>

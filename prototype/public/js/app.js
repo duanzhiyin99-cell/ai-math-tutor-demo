@@ -145,33 +145,74 @@
     });
   }
 
+  // 压缩图片：长边最大 1600px，统一转成 JPEG（解决手机照片过大、HEIC/PNG 格式问题）
+  function compressImage(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 1600;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        } catch (e) {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   function previewFile(file) {
+    if (file.size > 20 * 1024 * 1024) {
+      hint('图片超过 20MB，请压缩或换一张再上传', 'error');
+      showToast('图片太大，请换一张或先压缩');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
-      uploadedImage = String(reader.result);
-      els.imgPreview.src = uploadedImage;
-      els.dropInner.classList.add('hidden');
-      els.imgPreviewWrap.classList.remove('hidden');
-      recognizeImage();
+      compressImage(String(reader.result)).then((dataUrl) => {
+        uploadedImage = dataUrl;
+        els.imgPreview.src = dataUrl;
+        els.dropInner.classList.add('hidden');
+        els.imgPreviewWrap.classList.remove('hidden');
+        recognizeImage();
+      });
     };
+    reader.onerror = () => hint('读取图片失败，请重试', 'error');
     reader.readAsDataURL(file);
   }
 
   async function recognizeImage() {
-    hint('正在识别题目…');
+    hint('正在识别题目…（大图首次识别可能需要几秒）');
     try {
-      // 传 base64（dataUrl），服务端只取逗号后的部分
+      const m = (uploadedImage || '').match(/^data:([^;]+);/);
+      const mime = m ? m[1] : 'image/jpeg';
+      if (mime.indexOf('heic') >= 0 || mime.indexOf('heif') >= 0) {
+        hint('当前浏览器无法解码 HEIC 格式。请改用截图上传，或在手机“设置 → 相机 → 格式”中选择“兼容性最佳”（JPEG）', 'error');
+        return;
+      }
       const b64 = uploadedImage ? uploadedImage.split(',')[1] : '';
-      const r = await api('/api/recognize', { image: b64 });
+      const r = await api('/api/recognize', { image: b64, mime });
       if (r.ok && r.text) {
         els.problemInput.value = r.text;
         hint('识别成功（' + (r.source || '识别') + '），请校对后开始讲解', 'ok');
       } else {
-        hint(r.message || '未能自动识别，请手动输入题目', 'error');
+        hint(r.message || r.error || '未能自动识别，请手动输入题目', 'error');
         if (r.mode === 'manual') showToast('未配置 LLM API：请直接输入题目或使用示例题');
+        if (r.mode === 'error') showToast('识别失败：可直接输入题目，或换一张更清晰的图片');
       }
     } catch (e) {
-      hint('识别失败，请手动输入题目', 'error');
+      hint('识别请求失败（可能图片过大或网络中断），请压缩后重试，或直接手动输入题目', 'error');
     }
   }
 

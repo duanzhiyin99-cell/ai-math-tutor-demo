@@ -72,7 +72,15 @@ function sendJSON(res, code, obj) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 12 * 1024 * 1024) { req.destroy(); reject(new Error('请求体过大')); } });
+    req.on('data', (c) => {
+      data += c;
+      if (data.length > 25 * 1024 * 1024) {
+        const err = new Error('图片过大（超过约 18MB），请压缩或裁剪后重试');
+        err.status = 413;
+        reject(err);
+        req.destroy();
+      }
+    });
     req.on('end', () => resolve(data));
     req.on('error', reject);
   });
@@ -195,7 +203,7 @@ async function analyzeViaLLM(problem, myWork, level) {
 const SAMPLE_IMAGES = {};
 MockEngine.SAMPLES.forEach((s) => { SAMPLE_IMAGES[s.img] = s.text; });
 
-async function recognize({ image, sampleId, samplePath }) {
+async function recognize({ image, sampleId, samplePath, mime }) {
   // 1) 示例题：返回内置文本（模拟离线 OCR 效果）
   if (sampleId) {
     const s = MockEngine.SAMPLES.find((x) => x.id === sampleId);
@@ -215,7 +223,7 @@ async function recognize({ image, sampleId, samplePath }) {
         {
           role: 'user',
           content: [
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } },
+            { type: 'image_url', image_url: { url: `data:${mime || 'image/jpeg'};base64,${image}` } },
             { type: 'text', text: '请识别图片中的数学题目，只输出题目文本。' }
           ]
         }
@@ -297,7 +305,7 @@ async function handleAPI(req, res, url) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (url.pathname.startsWith('/api/')) {
-    handleAPI(req, res, url).catch((e) => sendJSON(res, 500, { error: '服务器错误: ' + e.message }));
+    handleAPI(req, res, url).catch((e) => sendJSON(res, e.status || 500, { error: (e.status === 413 ? e.message : '服务器错误: ' + e.message) }));
     return;
   }
   serveStatic(res, url.pathname);
